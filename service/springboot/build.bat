@@ -27,7 +27,12 @@ if %errorlevel% equ 0 (
 
 echo [1/2] Compiling and packaging automation_suite_springboot...
 cd /d "%~dp0..\..\automation_suite_springboot"
-call !MVN_CMD! clean package -DskipTests
+set "OFFLINE_OPTS="
+if exist "%~dp0..\..\.m2_repo" (
+    echo [INFO] Using bundled offline repository: %~dp0..\..\.m2_repo
+    set "OFFLINE_OPTS=-o -Dmaven.repo.local="%~dp0..\..\.m2_repo""
+)
+call !MVN_CMD! clean package -DskipTests !OFFLINE_OPTS!
 if %errorlevel% neq 0 (
     echo [ERROR] Spring Boot packaging failed!
     cd /d "%~dp0"

@@ -37,16 +37,12 @@ public class AsrAiOrchestratorService implements GlobalUiWebSocketListener, AiAg
     private final com.automation.aiagent.client.AiAgentWebSocketChannel aiAgentChannel;
     private final GlobalUiWebSocketChannel globalUiWebSocketChannel;
     private final TerminalOrchestratorService terminalOrchestratorService;
-    private final PromptTemplateService promptTemplateService;
-
     public AsrAiOrchestratorService(com.automation.aiagent.client.AiAgentWebSocketChannel aiAgentChannel,
                                     GlobalUiWebSocketChannel globalUiWebSocketChannel,
-                                    @Lazy TerminalOrchestratorService terminalOrchestratorService,
-                                    PromptTemplateService promptTemplateService) {
+                                    @Lazy TerminalOrchestratorService terminalOrchestratorService) {
         this.aiAgentChannel = aiAgentChannel;
         this.globalUiWebSocketChannel = globalUiWebSocketChannel;
         this.terminalOrchestratorService = terminalOrchestratorService;
-        this.promptTemplateService = promptTemplateService;
     }
 
     @PostConstruct
