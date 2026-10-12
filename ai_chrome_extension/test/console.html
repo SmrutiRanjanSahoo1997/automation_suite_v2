@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Copilot AI Agent Test Console (WebSocket Port 9020)</title>
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --bg-card: #1e293b;
+      --bg-input: #334155;
+      --accent-blue: #38bdf8;
+      --accent-green: #22c55e;
+      --accent-red: #ef4444;
+      --accent-yellow: #eab308;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --border-color: #475569;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+    body { background-color: var(--bg-dark); color: var(--text-main); padding: 20px; line-height: 1.5; }
+    .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 15px; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+    .header h1 { font-size: 1.6rem; color: var(--accent-blue); display: flex; align-items: center; gap: 10px; }
+    .badge { padding: 4px 10px; border-radius: 9999px; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; }
+    .badge-green { background-color: rgba(34, 197, 94, 0.2); color: var(--accent-green); border: 1px solid var(--accent-green); }
+    .badge-red { background-color: rgba(239, 68, 68, 0.2); color: var(--accent-red); border: 1px solid var(--accent-red); }
+    .badge-yellow { background-color: rgba(234, 179, 8, 0.2); color: var(--accent-yellow); border: 1px solid var(--accent-yellow); }
+    .badge-blue { background-color: rgba(56, 189, 248, 0.2); color: var(--accent-blue); border: 1px solid var(--accent-blue); }
+
+    .status-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .status-card { background: var(--bg-card); padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-color); }
+    .status-card .label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; }
+    .status-card .val { font-size: 1.05rem; font-weight: bold; margin-top: 4px; }
+
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 1024px) { .grid { grid-template-columns: 1fr; } }
+
+    .card { background: var(--bg-card); border-radius: 10px; border: 1px solid var(--border-color); padding: 20px; margin-bottom: 20px; }
+    .card h2 { font-size: 1.1rem; margin-bottom: 15px; color: var(--accent-blue); display: flex; justify-content: space-between; align-items: center; }
+
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
+    input[type="text"], textarea { width: 100%; padding: 10px; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-main); font-size: 0.9rem; }
+    textarea { height: 100px; resize: vertical; font-family: monospace; }
+
+    .preset-btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .btn-xs { padding: 4px 8px; font-size: 0.75rem; background: #334155; border: 1px solid #64748b; border-radius: 4px; color: #e2e8f0; cursor: pointer; transition: 0.2s; }
+    .btn-xs:hover { background: #475569; border-color: var(--accent-blue); }
+
+    .btn { padding: 10px 16px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; font-size: 0.85rem; }
+    .btn-primary { background: #0284c7; color: white; }
+    .btn-primary:hover { background: #0369a1; }
+    .btn-secondary { background: #475569; color: white; }
+    .btn-secondary:hover { background: #334155; }
+    .btn-warning { background: #d97706; color: white; }
+    .btn-warning:hover { background: #b45309; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .response-area { background: #090d16; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; font-family: 'Consolas', 'Courier New', monospace; font-size: 0.85rem; max-height: 380px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
+    .log-box { background: #050811; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; height: 260px; overflow-y: auto; font-family: monospace; font-size: 0.8rem; color: #a7f3d0; }
+    .log-entry { margin-bottom: 6px; border-bottom: 1px solid #1e293b; padding-bottom: 4px; }
+    .log-entry .time { color: var(--text-muted); }
+    .log-entry.err { color: #f87171; }
+    .log-entry.info { color: #38bdf8; }
+
+    .tab-bar { display: flex; gap: 8px; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
+    .tab { padding: 6px 12px; font-size: 0.85rem; font-weight: 600; cursor: pointer; border-radius: 4px; color: var(--text-muted); }
+    .tab.active { background: var(--accent-blue); color: #0f172a; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>
+      <span>🤖</span> Copilot AI Agent Test Console (WebSocket Port 9020)
+    </h1>
+    <div style="display: flex; gap: 10px; align-items: center; flex-wrap:wrap;">
+      <span id="ws-badge" class="badge badge-yellow">AI Agent WS: Connecting...</span>
+      <span id="extsn-badge" class="badge badge-yellow">EXTSN: Checking...</span>
+    </div>
+  </div>
+
+  <!-- Live Status Bar -->
+  <div class="status-bar">
+    <div class="status-card">
+      <div class="label">AI Agent WS (Port 9020)</div>
+      <div id="stat-ws" class="val" style="color:var(--accent-yellow)">CONNECTING</div>
+    </div>
+    <div class="status-card">
+      <div class="label">Extension Health (EXTSN)</div>
+      <div id="stat-extsn" class="val" style="color:var(--accent-yellow)">Checking...</div>
+    </div>
+    <div class="status-card">
+      <div class="label">Chrome Window State</div>
+      <div id="stat-chrome-state" class="val">Unknown</div>
+    </div>
+    <div class="status-card">
+      <div class="label">Last Conversation ID</div>
+      <div id="stat-conv-id" class="val" style="font-size:0.85rem; word-break:break-all;">-</div>
+    </div>
+    <div class="status-card">
+      <div class="label">Response Time</div>
+      <div id="stat-rt" class="val">0 ms</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- Left Column: Controls -->
+    <div>
+      <div class="card">
+        <h2>
+          <span>💬 Copilot Chat Automation Tester</span>
+          <span style="font-size:0.8rem; color:var(--text-muted);">ws://127.0.0.1:9020/ws/ai_agent</span>
+        </h2>
+
+        <div class="form-group">
+          <label for="conv-id">Conversation ID (null for new chat)</label>
+          <div style="display:flex; gap:8px;">
+            <input type="text" id="conv-id" value="null" placeholder="null or conversation ID">
+            <button class="btn-xs" style="white-space:nowrap;" onclick="setConvIdNull()">set null</button>
+            <button class="btn-xs" style="white-space:nowrap;" onclick="setConvIdInvalid()">Invalid ID (404)</button>
+            <button class="btn-xs" style="white-space:nowrap;" onclick="useLastConvId()">Use Last Conv ID</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Scenario Test Presets</label>
+          <div class="preset-btns">
+            <button class="btn-xs" onclick="loadPreset('NEW_CHAT')">✨ New Chat (null ID)</button>
+            <button class="btn-xs" onclick="loadPreset('EXISTING_CHAT')">🔄 Follow-Up Chat</button>
+            <button class="btn-xs" onclick="loadPreset('FILE_ATTACHMENT')">📎 File Attachment (.txt & .py)</button>
+            <button class="btn-xs" onclick="loadPreset('FORBIDDEN_DISGUISE')">🛡️ Disguise File Test (.bat -> .txt)</button>
+            <button class="btn-xs" onclick="loadPreset('INVALID_CHAT')">❌ Invalid Chat (404)</button>
+            <button class="btn-xs" onclick="loadPreset('MAX_FILES')">⚠️ Max 3 Files Error (>3)</button>
+            <button class="btn-xs" onclick="loadPreset('DELETE_CHAT')">🗑️ Delete Chat</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="message-input">Prompt Message Payload</label>
+          <textarea id="message-input" placeholder="Type prompt here..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="files-path-input">Attached Files Array (files_path, comma-separated)</label>
+          <input type="text" id="files-path-input" placeholder="e.g. C:\Ranjan\AutomationSuite_v2\ai_chrome_extension\sample_files_for_testing_file_attach\test_sample.txt">
+          <div style="margin-top:6px; display:flex; gap:8px; align-items:center;">
+            <button class="btn-xs" onclick="addSampleFileTxt()">+ Add Sample .txt</button>
+            <button class="btn-xs" onclick="addSampleFilePy()">+ Add Sample .py</button>
+            <button class="btn-xs" onclick="clearFilePaths()">Clear Files</button>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap:wrap;">
+          <button id="send-btn" class="btn btn-primary" onclick="sendExecuteTask()">
+            <span>🚀 Send EXECUTE_TASK via WebSocket</span>
+          </button>
+          <button id="delete-btn" class="btn btn-warning" onclick="sendExecuteDelete()">
+            <span>🗑️ Send EXECUTE_DELETE</span>
+          </button>
+          <button class="btn btn-secondary" onclick="reconnectWebSocket()">
+            <span>🔄 Reconnect WS</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Window Minimization Controls Card -->
+      <div class="card">
+        <h2>
+          <span>🖥️ Win32 Chrome Auto-Minimization Controller</span>
+        </h2>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px;">
+          Sends <code>SET_MINIMIZABLE</code> event over WebSocket to toggle Win32 background minimization.
+        </p>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button class="btn btn-warning" onclick="toggleMinimizable(true)">
+            <span>📉 Enable Auto-Minimization (true)</span>
+          </button>
+          <button class="btn btn-secondary" onclick="toggleMinimizable(false)">
+            <span>📈 Disable Minimization (false)</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Results & Logs -->
+    <div>
+      <div class="card">
+        <h2>
+          <span>📋 TASK_RESULT Output Inspector</span>
+          <span id="schema-badge" class="badge badge-yellow">Awaiting Request</span>
+        </h2>
+
+        <div class="tab-bar">
+          <div class="tab active" onclick="switchTab('parsed')">Parsed JSON</div>
+          <div class="tab" onclick="switchTab('raw')">Raw Response Text</div>
+        </div>
+
+        <div id="tab-parsed" class="response-area">// Waiting for TASK_RESULT payload from AI Agent WebSocket...</div>
+        <div id="tab-raw" class="response-area" style="display: none;">// Raw response text...</div>
+      </div>
+
+      <!-- Live Activity Log -->
+      <div class="card">
+        <h2>
+          <span>📜 Live WebSocket Log</span>
+          <button class="btn-xs" onclick="clearLogs()">Clear Log</button>
+        </h2>
+        <div id="log-box" class="log-box"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../src/event-constants.js"></script>
+  <script>
+    const SAMPLE_TXT = 'C:\\Ranjan\\AutomationSuite_v2\\ai_chrome_extension\\sample_files_for_testing_file_attach\\test_sample.txt';
+    const SAMPLE_PY = 'C:\\Ranjan\\AutomationSuite_v2\\ai_chrome_extension\\sample_files_for_testing_file_attach\\test_script.py';
+
+    let ws = null;
+    let lastExtractedConvId = null;
+    let currentRawResponse = "";
+    let currentParsedResponse = null;
+    let taskStartTime = 0;
+
+    function connectWebSocket() {
+      if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) {
+        return;
+      }
+
+      const wsUrl = (typeof EventConstants !== "undefined" && EventConstants.AI_AGENT_WS_URL) ? EventConstants.AI_AGENT_WS_URL : "ws://127.0.0.1:9020/ws/ai_agent";
+      logMsg(`Connecting to AI Agent WebSocket: ${wsUrl} ...`, "info");
+      updateWsStatus("CONNECTING", "yellow");
+
+      try {
+        ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+          logMsg("Connected to AI Agent WebSocket (Port 9020)!", "info");
+          updateWsStatus("CONNECTED", "green");
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            handleIncomingWsMessage(data);
+          } catch (err) {
+            logMsg("Received raw text message: " + event.data, "info");
+          }
+        };
+
+        ws.onerror = (err) => {
+          logMsg("WebSocket error occurred.", "err");
+          updateWsStatus("ERROR", "red");
+        };
+
+        ws.onclose = () => {
+          logMsg("WebSocket connection closed. Reconnecting in 3 seconds...", "err");
+          updateWsStatus("DISCONNECTED", "red");
+          document.getElementById('stat-extsn').innerHTML = '<span style="color:var(--accent-yellow)">OFFLINE</span>';
+          document.getElementById('extsn-badge').className = 'badge badge-yellow';
+          document.getElementById('extsn-badge').innerText = 'EXTSN: Unknown';
+          setTimeout(connectWebSocket, 3000);
+        };
+
+      } catch (err) {
+        logMsg("WebSocket initialization exception: " + err.message, "err");
+        updateWsStatus("ERROR", "red");
+        setTimeout(connectWebSocket, 3000);
+      }
+    }
+
+    function reconnectWebSocket() {
+      if (ws) {
+        try { ws.close(); } catch(e) {}
+      }
+      connectWebSocket();
+    }
+
+    function updateWsStatus(statusText, colorKey) {
+      const statEl = document.getElementById('stat-ws');
+      const badgeEl = document.getElementById('ws-badge');
+      statEl.innerText = statusText;
+
+      if (colorKey === 'green') {
+        statEl.style.color = 'var(--accent-green)';
+        badgeEl.className = 'badge badge-green';
+        badgeEl.innerText = 'AI Agent WS: Connected';
+      } else if (colorKey === 'red') {
+        statEl.style.color = 'var(--accent-red)';
+        badgeEl.className = 'badge badge-red';
+        badgeEl.innerText = 'AI Agent WS: Disconnected';
+      } else {
+        statEl.style.color = 'var(--accent-yellow)';
+        badgeEl.className = 'badge badge-yellow';
+        badgeEl.innerText = 'AI Agent WS: Connecting';
+      }
+    }
+
+    function handleIncomingWsMessage(msg) {
+      logMsg(`Received Event [${msg.event || 'UNKNOWN'}]: ` + JSON.stringify(msg), "info");
+
+      // 1. AI_HEALTH Event Push
+      if (msg.event === "AI_HEALTH") {
+        const extConnected = msg.extsnConnected || msg.status === "OK";
+        const extsnStatusEl = document.getElementById('stat-extsn');
+        const extsnBadgeEl = document.getElementById('extsn-badge');
+
+        if (extConnected) {
+          extsnStatusEl.innerHTML = '<span style="color:var(--accent-green)">OK (Connected)</span>';
+          extsnBadgeEl.className = 'badge badge-green';
+          extsnBadgeEl.innerText = 'EXTSN: Connected';
+        } else {
+          extsnStatusEl.innerHTML = '<span style="color:var(--accent-red)">NOT_OK (Disconnected)</span>';
+          extsnBadgeEl.className = 'badge badge-red';
+          extsnBadgeEl.innerText = 'EXTSN: Disconnected';
+        }
+
+        if (msg.chromeState) {
+          document.getElementById('stat-chrome-state').innerText = msg.chromeState;
+        }
+        return;
+      }
+
+      // 2. TASK_RESULT Event Push
+      if (msg.event === "TASK_RESULT") {
+        const sendBtn = document.getElementById('send-btn');
+        sendBtn.disabled = false;
+        sendBtn.innerText = '🚀 Send EXECUTE_TASK via WebSocket';
+
+        const elapsed = taskStartTime ? Math.round(performance.now() - taskStartTime) : (msg.responseTimeMs || 0);
+        document.getElementById('stat-rt').innerText = (msg.responseTimeMs || elapsed) + ' ms';
+
+        currentRawResponse = JSON.stringify(msg, null, 2);
+        currentParsedResponse = msg;
+
+        if (msg.status === "RESPONSE" || msg.status === "RECEIVED") {
+          if (msg.conversationId) {
+            lastExtractedConvId = msg.conversationId;
+            document.getElementById('stat-conv-id').innerText = msg.conversationId;
+          }
+          logMsg(`Task completed successfully! Response: "${msg.response}"`, "info");
+          document.getElementById('schema-badge').className = 'badge badge-green';
+          document.getElementById('schema-badge').innerText = 'Status: RESPONSE (OK)';
+        } else {
+          logMsg(`Task failed: ${msg.error || msg.response || 'Execution error'}`, "err");
+          document.getElementById('schema-badge').className = 'badge badge-red';
+          document.getElementById('schema-badge').innerText = `Status: ${msg.status || 'FAILED'}`;
+        }
+
+        renderOutput();
+        return;
+      }
+
+      // 3. DELETE_RESPONSE Event Push
+      if (msg.event === "DELETE_RESPONSE") {
+        const deleteBtn = document.getElementById('delete-btn');
+        if (deleteBtn) {
+          deleteBtn.disabled = false;
+          deleteBtn.innerText = '🗑️ Send EXECUTE_DELETE';
+        }
+
+        const elapsed = taskStartTime ? Math.round(performance.now() - taskStartTime) : 0;
+        document.getElementById('stat-rt').innerText = elapsed + ' ms';
+
+        currentRawResponse = JSON.stringify(msg, null, 2);
+        currentParsedResponse = msg;
+
+        if (msg.status === "RESPONSE") {
+          logMsg(`Delete operation successful! Message: "${msg.message}"`, "info");
+          document.getElementById('schema-badge').className = 'badge badge-green';
+          document.getElementById('schema-badge').innerText = 'Status: RESPONSE (Deleted)';
+          if (msg.conversationId && msg.conversationId === lastExtractedConvId) {
+            lastExtractedConvId = null;
+            document.getElementById('stat-conv-id').innerText = '-';
+          }
+        } else {
+          logMsg(`Delete operation failed: ${msg.error || 'Execution error'}`, "err");
+          document.getElementById('schema-badge').className = 'badge badge-red';
+          document.getElementById('schema-badge').innerText = `Status: ${msg.status || 'FAILED'}`;
+        }
+
+        renderOutput();
+        return;
+      }
+    }
+
+    function sendExecuteTask() {
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        alert("AI Agent WebSocket is not connected!");
+        return;
+      }
+
+      let convId = document.getElementById('conv-id').value.trim();
+      if (convId.toLowerCase() === 'null' || !convId) {
+        convId = null;
+      }
+      const promptText = document.getElementById('message-input').value.trim();
+
+      if (!promptText) {
+        alert('Please enter a prompt message payload.');
+        return;
+      }
+
+      const filesInputText = document.getElementById('files-path-input').value.trim();
+      let filesList = [];
+      if (filesInputText) {
+        filesList = filesInputText.split(',').map(s => s.trim()).filter(Boolean);
+      }
+
+      const sendBtn = document.getElementById('send-btn');
+      sendBtn.disabled = true;
+      sendBtn.innerText = '⏳ Waiting for Copilot Execution...';
+
+      taskStartTime = performance.now();
+
+      const taskId = "task_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+
+      const payload = {
+        event: "EXECUTE_TASK",
+        taskId: taskId,
+        conversationId: convId,
+        prompt: promptText,
+        files_path: filesList
+      };
+
+      logMsg("Sending EXECUTE_TASK payload to AI Agent: " + JSON.stringify(payload), "info");
+      ws.send(JSON.stringify(payload));
+    }
+
+    function sendExecuteDelete() {
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        alert("AI Agent WebSocket is not connected!");
+        return;
+      }
+
+      let convId = document.getElementById('conv-id').value.trim();
+      if (convId.toLowerCase() === 'null' || !convId) {
+        alert("conversationId is mandatory for delete operation.");
+        return;
+      }
+
+      const deleteBtn = document.getElementById('delete-btn');
+      if (deleteBtn) {
+        deleteBtn.disabled = true;
+        deleteBtn.innerText = '⏳ Deleting Copilot Conversation...';
+      }
+
+      taskStartTime = performance.now();
+
+      const payload = {
+        event: (typeof EventConstants !== "undefined" && EventConstants.EXECUTE_DELETE) ? EventConstants.EXECUTE_DELETE : "EXECUTE_DELETE",
+        conversationId: convId
+      };
+
+      logMsg("Sending EXECUTE_DELETE payload to AI Agent: " + JSON.stringify(payload), "info");
+      ws.send(JSON.stringify(payload));
+    }
+
+    function toggleMinimizable(flag) {
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        alert("AI Agent WebSocket is not connected!");
+        return;
+      }
+
+      const payload = {
+        event: "SET_MINIMIZABLE",
+        minimizable: flag
+      };
+
+      logMsg("Sending SET_MINIMIZABLE: " + JSON.stringify(payload), "info");
+      ws.send(JSON.stringify(payload));
+    }
+
+    function logMsg(msg, type = 'info') {
+      const logBox = document.getElementById('log-box');
+      const ts = new Date().toLocaleTimeString();
+      const div = document.createElement('div');
+      div.className = `log-entry ${type}`;
+      div.innerHTML = `<span class="time">[${ts}]</span> ${msg}`;
+      logBox.appendChild(div);
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    function clearLogs() {
+      document.getElementById('log-box').innerHTML = '';
+    }
+
+    function setConvIdNull() {
+      document.getElementById('conv-id').value = 'null';
+      logMsg('Conversation ID set to: null (New Conversation)');
+    }
+
+    function setConvIdInvalid() {
+      document.getElementById('conv-id').value = 'Q33spmv6P5vvtt8CW4Aa';
+      logMsg('Conversation ID set to invalid ID: Q33spmv6P5vvtt8CW4Aa');
+    }
+
+    function useLastConvId() {
+      if (lastExtractedConvId) {
+        document.getElementById('conv-id').value = lastExtractedConvId;
+        logMsg('Loaded last conversationId: ' + lastExtractedConvId);
+      } else {
+        alert('No conversation ID extracted yet. Run a new chat request first.');
+      }
+    }
+
+    function clearFilePaths() {
+      document.getElementById('files-path-input').value = '';
+    }
+
+    function addSampleFileTxt() {
+      const cur = document.getElementById('files-path-input').value.trim();
+      document.getElementById('files-path-input').value = cur ? `${cur}, ${SAMPLE_TXT}` : SAMPLE_TXT;
+    }
+
+    function addSampleFilePy() {
+      const cur = document.getElementById('files-path-input').value.trim();
+      document.getElementById('files-path-input').value = cur ? `${cur}, ${SAMPLE_PY}` : SAMPLE_PY;
+    }
+
+    function loadPreset(presetKey) {
+      document.getElementById('files-path-input').value = '';
+
+      if (presetKey === 'NEW_CHAT') {
+        document.getElementById('conv-id').value = 'null';
+        document.getElementById('message-input').value = 'Hello Copilot, reply with exactly the word: BANANA';
+      } else if (presetKey === 'EXISTING_CHAT') {
+        document.getElementById('conv-id').value = lastExtractedConvId || 'Q33spmv6P5vvtt8CW4Aay';
+        document.getElementById('message-input').value = 'What is 10 + 10?';
+      } else if (presetKey === 'FILE_ATTACHMENT') {
+        document.getElementById('conv-id').value = 'null';
+        document.getElementById('message-input').value = 'Please analyze these attached sample files and summarize their contents.';
+        document.getElementById('files-path-input').value = `${SAMPLE_TXT}, ${SAMPLE_PY}`;
+      } else if (presetKey === 'FORBIDDEN_DISGUISE') {
+        document.getElementById('conv-id').value = 'null';
+        document.getElementById('message-input').value = 'Test disguise for forbidden file extension';
+        document.getElementById('files-path-input').value = 'C:\\Ranjan\\AutomationSuite_v2\\ai_temp_files\\sample_test.bat';
+      } else if (presetKey === 'INVALID_CHAT') {
+        document.getElementById('conv-id').value = 'Q33spmv6P5vvtt8CW4Aa';
+        document.getElementById('message-input').value = 'Hello on deleted chat';
+      } else if (presetKey === 'MAX_FILES') {
+        document.getElementById('conv-id').value = 'null';
+        document.getElementById('message-input').value = 'Test exceeding max 3 files limit';
+        document.getElementById('files-path-input').value = 'file1.txt, file2.log, file3.pdf, file4.docx';
+      } else if (presetKey === 'DELETE_CHAT') {
+        document.getElementById('conv-id').value = lastExtractedConvId || 'Q33spmv6P5vvtt8CW4Aa';
+        document.getElementById('message-input').value = '[EXECUTE_DELETE task payload - prompt not required]';
+      }
+
+      logMsg(`Loaded Preset [${presetKey}]`);
+    }
+
+    function renderOutput() {
+      document.getElementById('tab-parsed').innerText = currentRawResponse || '// No data yet';
+      document.getElementById('tab-raw').innerText = (currentParsedResponse && currentParsedResponse.response) ? currentParsedResponse.response : currentRawResponse;
+    }
+
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+
+      document.getElementById('tab-parsed').style.display = tabName === 'parsed' ? 'block' : 'none';
+      document.getElementById('tab-raw').style.display = tabName === 'raw' ? 'block' : 'none';
+    }
+
+    // Auto-connect on page load
+    loadPreset('NEW_CHAT');
+    connectWebSocket();
+  </script>
+</body>
+</html>

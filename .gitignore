@@ -1,0 +1,56 @@
+# ==============================================================================
+# Automation Suite V2 — Git Ignore Configuration
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Maven & Java Build Outputs (Build from source with Maven)
+# ------------------------------------------------------------------------------
+**/target/
+target/
+**/*.class
+dependency-reduced-pom.xml
+.mvn/timing.properties
+
+# ------------------------------------------------------------------------------
+# 2. Node.js & React Frontend Artifacts (Build from source with npm)
+# ------------------------------------------------------------------------------
+**/node_modules/
+node_modules/
+automation_suite_frontend/dist/
+.npm/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ------------------------------------------------------------------------------
+# 3. Runtime Logs & WinSW Service Logs
+# ------------------------------------------------------------------------------
+*.log
+**/*.log
+*.wrapper.log
+*.out.log
+*.err.log
+
+# ------------------------------------------------------------------------------
+# 4. IDE, Editors, & Workspace Metadata
+# ------------------------------------------------------------------------------
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# ------------------------------------------------------------------------------
+# 5. Operating System & Temporary Files
+# ------------------------------------------------------------------------------
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+*.tmp
+*.bak
+*.swp
+*~

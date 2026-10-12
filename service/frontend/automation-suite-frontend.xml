@@ -1,0 +1,14 @@
+<service>
+  <id>automation-suite-frontend</id>
+  <name>Automation Suite V2 - Standalone Frontend Web Server</name>
+  <description>Automation Suite V2 Standalone React SPA Static Server (Port 3000)</description>
+  <executable>cmd.exe</executable>
+  <arguments>/c npx --yes serve -s "%BASE%\dist" -l 3000</arguments>
+  <workingdirectory>%BASE%</workingdirectory>
+  <log mode="roll-by-size">
+    <sizeThreshold>10240</sizeThreshold>
+    <keepFiles>10</keepFiles>
+  </log>
+  <startmode>Manual</startmode>
+  <onfailure action="restart" delay="10 sec" />
+</service>

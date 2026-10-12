@@ -1,0 +1,17 @@
+<service>
+  <id>automation-suite-springboot</id>
+  <name>Automation Suite V2 - Spring Boot Orchestrator</name>
+  <description>Automation Suite V2 Core Backend Orchestrator, SQLite Database, and Global WebSocket Engine (Port 9011)</description>
+  <executable>java</executable>
+  <arguments>-Xms512m -Xmx2048m -jar "%BASE%\automation_suite_springboot-2.0.0.jar"</arguments>
+  <workingdirectory>%BASE%</workingdirectory>
+  <log mode="roll-by-size">
+    <sizeThreshold>10240</sizeThreshold>
+    <keepFiles>10</keepFiles>
+  </log>
+  <startmode>Automatic</startmode>
+  <delayedAutoStart>true</delayedAutoStart>
+  <onfailure action="restart" delay="10 sec" />
+  <onfailure action="restart" delay="30 sec" />
+  <resetfailure>1 hour</resetfailure>
+</service>

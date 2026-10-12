@@ -1,0 +1,17 @@
+<service>
+  <id>automation-suite-mssql-agent</id>
+  <name>Automation Suite V2 - MSSQL Database Agent</name>
+  <description>Automation Suite V2 Microsoft SQL Server Query and Automation Agent (Port 9012)</description>
+  <executable>java</executable>
+  <arguments>-Xms256m -Xmx1024m -jar "%BASE%\automation_suite_mssql_agent-2.0.0.jar"</arguments>
+  <workingdirectory>%BASE%</workingdirectory>
+  <log mode="roll-by-size">
+    <sizeThreshold>10240</sizeThreshold>
+    <keepFiles>10</keepFiles>
+  </log>
+  <startmode>Automatic</startmode>
+  <delayedAutoStart>true</delayedAutoStart>
+  <onfailure action="restart" delay="10 sec" />
+  <onfailure action="restart" delay="30 sec" />
+  <resetfailure>1 hour</resetfailure>
+</service>

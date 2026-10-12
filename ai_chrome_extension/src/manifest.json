@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "Copilot AI Agent Extension",
+  "version": "2.0.0",
+  "description": "Automates Copilot interaction, pastes prompts, attaches files, and connects via WebSocket to Java AI Agent.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "tabs",
+    "alarms"
+  ],
+  "host_permissions": [
+    "https://copilot.com/*",
+    "https://copilot.microsoft.com/*",
+    "ws://127.0.0.1:9020/*",
+    "ws://localhost:9020/*"
+  ],
+  "externally_connectable": {
+    "matches": [
+      "file://*/*",
+      "http://localhost/*",
+      "http://127.0.0.1/*"
+    ]
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://copilot.com/*",
+        "https://copilot.microsoft.com/*"
+      ],
+      "js": ["event-constants.js", "content.js"],
+      "run_at": "document_end"
+    }
+  ]
+}

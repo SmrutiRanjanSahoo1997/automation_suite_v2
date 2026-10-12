@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Automation Suite Agent V2 — Native Terminal Console</title>
+  <style>
+    :root {
+      --bg-color: #121212;
+      --card-bg: #1e1e1e;
+      --border-color: #333333;
+      --accent-color: #007acc;
+      --accent-hover: #005999;
+      --text-color: #cccccc;
+      --term-bg: #0c0c0c;
+      --term-fg: #cccccc;
+      --term-prompt: #4ec9b0;
+      --term-path: #9cdcfe;
+      --term-yellow: #dcdcaa;
+      --term-red: #f44747;
+      --term-blue: #569cd6;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+    header {
+      background-color: var(--card-bg);
+      padding: 10px 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    h1 { font-size: 1.1rem; color: #ffffff; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    .status-badge {
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 0.82rem;
+      font-weight: bold;
+      background-color: #3a3a3a;
+      color: #aaa;
+    }
+    .status-badge.connected { background-color: #1b5e20; color: #4caf50; }
+    .status-badge.disconnected { background-color: #b71c1c; color: #f44336; }
+    
+    .container {
+      display: flex;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+    }
+    .panel {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+    }
+    .sidebar {
+      width: 360px;
+      min-width: 360px;
+      flex-shrink: 0;
+      background-color: var(--card-bg);
+      border-right: 1px solid var(--border-color);
+    }
+    .main-area {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      background-color: #181818;
+      overflow: hidden;
+    }
+    
+    .card {
+      background-color: #252526;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 12px;
+    }
+    .card-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #ffffff;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+    label { font-size: 0.78rem; color: #aaa; }
+    input, select {
+      background-color: #3c3c3c;
+      border: 1px solid #555;
+      color: #fff;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 0.85rem;
+    }
+    input:focus, select:focus { border-color: var(--accent-color); outline: none; }
+    
+    .btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    button {
+      background-color: var(--accent-color);
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background 0.15s;
+    }
+    button:hover { background-color: var(--accent-hover); }
+    button.btn-danger { background-color: #d32f2f; }
+    button.btn-danger:hover { background-color: #9a0007; }
+    button.btn-warning { background-color: #f57c00; color: #fff; }
+    button.btn-warning:hover { background-color: #b26a00; }
+    button.btn-secondary { background-color: #4a4a4a; }
+    button.btn-secondary:hover { background-color: #616161; }
+
+    /* Native Windows Terminal Styling */
+    .terminal-window {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--term-bg);
+      border: 1px solid #2d2d2d;
+      margin: 10px;
+      border-radius: 6px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      overflow: hidden;
+    }
+    .terminal-titlebar {
+      background-color: #1f1f1f;
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      color: #cccccc;
+      border-bottom: 1px solid #2d2d2d;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+    }
+    .terminal-tab {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background-color: #0c0c0c;
+      padding: 4px 12px;
+      border-radius: 4px 4px 0 0;
+      border: 1px solid #333;
+      border-bottom: none;
+      font-size: 0.8rem;
+      color: #fff;
+    }
+
+    .status-pill {
+      padding: 3px 12px;
+      border-radius: 10px;
+      font-size: 0.78rem;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-weight: bold;
+      background-color: #252526;
+      color: #aaa;
+      border: 1px solid #3c3c3c;
+    }
+    .status-pill.idle { background-color: #1b3a2b; color: #4ec9b0; border-color: #2e694e; }
+    .status-pill.running { background-color: #3d3417; color: #dcdcaa; border-color: #736224; }
+    .status-pill.closing, .status-pill.closed { background-color: #3b1c1c; color: #f44747; border-color: #732828; }
+
+    .terminal-body {
+      flex: 1;
+      min-width: 0;
+      padding: 14px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 0.92rem;
+      color: var(--term-fg);
+      overflow-y: auto;
+      overflow-x: hidden;
+      white-space: pre-wrap;
+      word-break: break-all;
+      word-wrap: break-word;
+      line-height: 1.4;
+      background-color: #0c0c0c;
+    }
+
+    .terminal-input-bar {
+      display: flex;
+      min-width: 0;
+      background-color: #181818;
+      padding: 8px 12px;
+      border-top: 1px solid #2d2d2d;
+      gap: 8px;
+      align-items: center;
+    }
+    .terminal-prompt {
+      color: var(--term-prompt);
+      font-weight: bold;
+      white-space: nowrap;
+    }
+    .terminal-input-bar input {
+      flex: 1;
+      min-width: 0;
+      background-color: #0c0c0c;
+      border: 1px solid #3c3c3c;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 0.9rem;
+    }
+    
+    /* JSON Event Inspector */
+    .inspector-container {
+      height: 180px;
+      min-width: 0;
+      flex-shrink: 0;
+      background-color: #1e1e1e;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .inspector-header {
+      background-color: #252526;
+      padding: 6px 14px;
+      font-size: 0.78rem;
+      font-weight: bold;
+      color: #aaa;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .inspector-log {
+      flex: 1;
+      min-width: 0;
+      padding: 8px 14px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 0.78rem;
+      overflow-y: auto;
+      overflow-x: hidden;
+      white-space: pre-wrap;
+      word-break: break-all;
+      word-wrap: break-word;
+      color: #9cdcfe;
+    }
+    .log-item { margin-bottom: 3px; line-height: 1.35; }
+    .log-item.inbound { color: #4ec9b0; }
+    .log-item.outbound { color: #ce9178; }
+    .log-item.system { color: #dcdcaa; }
+    .log-item.error { color: #f44747; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>💻 Automation Suite Agent V2 — Real-Time Terminal Console</h1>
+    <div id="connectionStatus" class="status-badge disconnected">Disconnected</div>
+  </header>
+
+  <div class="container">
+    <!-- Sidebar Controls -->
+    <div class="sidebar panel">
+      
+      <!-- Connection Setup -->
+      <div class="card">
+        <div class="card-title">WebSocket Connection</div>
+        <div class="form-group">
+          <label for="wsUrl">WebSocket URL</label>
+          <input type="text" id="wsUrl" value="ws://localhost:9010/ws/agent?x-agent-key=zGQ3aJB3IluC5eeU">
+        </div>
+        <div class="form-group">
+          <label for="agentKey">x-agent-key (16 char secret)</label>
+          <input type="text" id="agentKey" value="zGQ3aJB3IluC5eeU">
+        </div>
+        <div class="btn-group">
+          <button id="btnConnect" onclick="connectWebSocket()">Connect</button>
+          <button id="btnDisconnect" class="btn-danger" onclick="disconnectWebSocket()" disabled>Disconnect</button>
+        </div>
+      </div>
+
+      <!-- Active Sessions & Resume (metadata_list) -->
+      <div class="card">
+        <div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
+          <span>Terminal Sessions List</span>
+          <button class="btn-secondary" style="padding: 2px 6px; font-size: 0.72rem;" onclick="fetchMetadataList()">Refresh List</button>
+        </div>
+        <div id="sessionListContainer" style="display: flex; flex-direction: column; gap: 6px; max-height: 150px; overflow-y: auto;">
+          <div style="font-size: 0.78rem; color: #888; text-align: center; padding: 6px;">No sessions loaded. Click Connect or Refresh List.</div>
+        </div>
+      </div>
+
+      <!-- Terminal Session Setup -->
+      <div class="card">
+        <div class="card-title">Terminal Management</div>
+        <div class="form-group">
+          <label for="termId">Terminal ID</label>
+          <input type="text" id="termId" value="term-1">
+        </div>
+        <div class="form-group">
+          <label for="platform">Shell Platform</label>
+          <select id="platform" onchange="onPlatformChange()">
+            <option value="PS" selected>PowerShell (PS)</option>
+            <option value="CMD">Command Prompt (CMD)</option>
+          </select>
+        </div>
+        <div class="btn-group">
+          <button onclick="sendStart()">Start Terminal</button>
+          <button class="btn-warning" onclick="sendStop()">STOP (Ctrl+C)</button>
+          <button class="btn-danger" onclick="sendClose()">Close Terminal</button>
+        </div>
+      </div>
+
+      <!-- Test Presets & Metadata -->
+      <div class="card">
+        <div class="card-title">Quick Scenarios & Metadata</div>
+        <div class="btn-group">
+          <button class="btn-secondary" onclick="runPresetSingle()">Single Line (Get-Loc/dir)</button>
+          <button class="btn-secondary" onclick="runPresetCompound()">Compound Command</button>
+          <button class="btn-secondary" onclick="runPresetCd()">Change Dir (cd \)</button>
+          <button class="btn-secondary" onclick="runPresetMultiline()">Multiline (Reject Test)</button>
+          <button class="btn-secondary" onclick="runPresetLong()">Long Stream (Ping)</button>
+          <button class="btn-secondary" onclick="fetchMetadataList()">Get Terminals List</button>
+          <button class="btn-secondary" onclick="fetchLastResult()">Get lastResult</button>
+          <button class="btn-secondary" onclick="fetchLastError()">Get lastError</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Main Output & Interactive Terminal -->
+    <div class="main-area">
+      <div class="terminal-window">
+        <div class="terminal-titlebar">
+          <div class="terminal-tab">
+            <span id="tabIcon">🐚</span>
+            <span id="tabTitle">Windows PowerShell</span>
+          </div>
+          <div id="termStatusBadge" class="status-pill idle">Terminal: term-1 | PID: - | State: IDLE</div>
+          <div>
+            <button class="btn-secondary" style="padding: 2px 8px; font-size: 0.75rem;" onclick="clearTerminal()">Clear Terminal</button>
+          </div>
+        </div>
+        
+        <div id="terminalBody" class="terminal-body" onclick="focusActiveInput()">Welcome to Automation Suite Agent V2 Terminal Console.
+Click "Connect" to authenticate over WebSocket (port 9010) using x-agent-key: zGQ3aJB3IluC5eeU.
+Then click "Start Terminal" to launch an interactive ConPTY session.
+-----------------------------------------------------------------------------------------------
+</div>
+        
+        <div class="terminal-input-bar">
+          <span id="barPrompt" class="terminal-prompt">PS C:\Users\happy></span>
+          <input type="text" id="cmdInput" placeholder="Type command here and press Enter (or paste)..." onkeydown="handleKeyDown(event)">
+          <button onclick="sendExecute()">Send (Enter)</button>
+        </div>
+      </div>
+
+      <!-- JSON Inspector Log -->
+      <div class="inspector-container">
+        <div class="inspector-header">
+          <span>WebSocket Event Protocol Inspector</span>
+          <button class="btn-secondary" style="padding: 2px 8px; font-size: 0.75rem;" onclick="clearInspector()">Clear Inspector</button>
+        </div>
+        <div id="inspectorLog" class="inspector-log"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let ws = null;
+    let currentPath = "";
+    let cmdHistory = [];
+    let historyIdx = -1;
+
+    function stripAnsi(str) {
+      if (!str) return '';
+      let s = str
+        .replace(/\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)/g, '')
+        .replace(/\x1b\[[0-9;?]*[ -/]*[@-~]/g, '')
+        .replace(/\x1b[@-_]/g, '');
+      return s.replace(/\r\n/g, '\n').replace(/\r/g, '');
+    }
+
+    function getPromptString() {
+      const platform = document.getElementById('platform').value;
+      const displayPath = currentPath || "C:\\";
+      if (platform === 'PS') {
+        return `PS ${displayPath}>`;
+      } else {
+        return `${displayPath}>`;
+      }
+    }
+
+    function updatePromptDisplay() {
+      const promptStr = getPromptString();
+      document.getElementById('barPrompt').textContent = promptStr + ' ';
+    }
+
+    function ensurePromptAtEnd() {
+      const body = document.getElementById('terminalBody');
+      const promptStr = getPromptString() + ' ';
+      if (!body.textContent.endsWith(promptStr)) {
+        if (!body.textContent.endsWith('\n') && body.textContent.length > 0) {
+          body.textContent += '\n';
+        }
+        body.textContent += promptStr;
+        body.scrollTop = body.scrollHeight;
+      }
+    }
+
+    function onPlatformChange() {
+      const platform = document.getElementById('platform').value;
+      const tabTitle = document.getElementById('tabTitle');
+      if (platform === 'PS') {
+        tabTitle.textContent = 'Windows PowerShell';
+      } else {
+        tabTitle.textContent = 'Command Prompt';
+      }
+      updatePromptDisplay();
+    }
+
+    function logInspector(message, type = 'system') {
+      const logEl = document.getElementById('inspectorLog');
+      const time = new Date().toLocaleTimeString();
+      const div = document.createElement('div');
+      div.className = `log-item ${type}`;
+      div.textContent = `[${time}] ${message}`;
+      logEl.appendChild(div);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function appendTerminal(text) {
+      const clean = stripAnsi(text);
+      if (!clean) return;
+      const body = document.getElementById('terminalBody');
+      body.textContent += clean;
+      body.scrollTop = body.scrollHeight;
+    }
+
+    function clearTerminal() {
+      document.getElementById('terminalBody').textContent = '';
+    }
+
+    function clearInspector() {
+      document.getElementById('inspectorLog').innerHTML = '';
+    }
+
+    function setConnectedState(isConnected) {
+      const badge = document.getElementById('connectionStatus');
+      const btnConn = document.getElementById('btnConnect');
+      const btnDis = document.getElementById('btnDisconnect');
+
+      if (isConnected) {
+        badge.textContent = 'Connected (Port 9010)';
+        badge.className = 'status-badge connected';
+        btnConn.disabled = true;
+        btnDis.disabled = false;
+      } else {
+        badge.textContent = 'Disconnected';
+        badge.className = 'status-badge disconnected';
+        btnConn.disabled = false;
+        btnDis.disabled = true;
+      }
+    }
+
+    function connectWebSocket() {
+      let url = document.getElementById('wsUrl').value.trim();
+      const key = document.getElementById('agentKey').value.trim();
+
+      if (key && !url.includes('x-agent-key=')) {
+        url += (url.includes('?') ? '&' : '?') + 'x-agent-key=' + encodeURIComponent(key);
+      }
+
+      logInspector(`Connecting to ${url}...`, 'system');
+      
+      try {
+        ws = new WebSocket(url);
+      } catch (err) {
+        logInspector(`Failed to create WebSocket: ${err.message}`, 'error');
+        return;
+      }
+
+      ws.onopen = () => {
+        setConnectedState(true);
+        logInspector(`WebSocket Connected successfully! authenticated with x-agent-key`, 'system');
+        fetchMetadataList();
+      };
+
+      ws.onmessage = (event) => {
+        logInspector(`RECEIVED: ${event.data}`, 'inbound');
+        try {
+          const json = JSON.parse(event.data);
+          handleWireEvent(json);
+        } catch (e) {
+          appendTerminal(`\n[Raw Frame]: ${event.data}\n`);
+        }
+      };
+
+      ws.onerror = (err) => {
+        logInspector(`WebSocket Error`, 'error');
+      };
+
+      ws.onclose = (evt) => {
+        setConnectedState(false);
+        logInspector(`WebSocket Connection Closed (code: ${evt.code}, reason: ${evt.reason || 'None'})`, 'system');
+      };
+    }
+
+    function disconnectWebSocket() {
+      if (ws) {
+        ws.close();
+      }
+    }
+
+    function sendEvent(obj) {
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        alert("WebSocket is not connected. Please click Connect first!");
+        return;
+      }
+      const jsonStr = JSON.stringify(obj);
+      ws.send(jsonStr);
+      logInspector(`SENT: ${jsonStr}`, 'outbound');
+    }
+
+    function handleWireEvent(evt) {
+      const type = evt["event-type"];
+      if (type === "terminal_result") {
+        if (evt.chunk) {
+          appendTerminal(evt.chunk);
+          extractPathFromChunk(evt.chunk);
+        }
+        if (evt.end) {
+          ensurePromptAtEnd();
+        }
+      } else if (type === "terminal_error") {
+        if (evt.chunk) {
+          appendTerminal(`\n[ERROR ${evt.errorCode || ''}]: ${evt.chunk}\n`);
+        }
+        if (evt.end) {
+          ensurePromptAtEnd();
+        }
+      } else if (type === "terminal_status") {
+        const activeTermId = document.getElementById('termId').value;
+        if (evt.terminalid === activeTermId && evt.platform) {
+          document.getElementById('platform').value = evt.platform;
+          onPlatformChange();
+        }
+        if (evt.terminalid === activeTermId && evt.currentPath) {
+          currentPath = evt.currentPath;
+          updatePromptDisplay();
+        }
+        const statusEl = document.getElementById('termStatusBadge');
+        if (statusEl && evt.terminalid === activeTermId) {
+          const stateLower = (evt.state || 'idle').toLowerCase();
+          statusEl.className = `status-pill ${stateLower}`;
+          statusEl.textContent = `Terminal: ${evt.terminalid || 'term-1'} | PID: ${evt.pid > 0 ? evt.pid : '-'} | State: ${evt.state}`;
+        }
+        if (evt.state === "IDLE") {
+          updatePromptDisplay();
+          ensurePromptAtEnd();
+        }
+        if (evt.state === "IDLE" || evt.state === "CLOSED") {
+          fetchMetadataListSilently();
+        }
+      } else if (type === "metadata_list") {
+        renderSessionList(evt.terminals || []);
+      } else if (type === "terminal_max") {
+        appendTerminal(`\n[CAPACITY REJECTED] Maximum 10 terminals reached!\n`);
+        ensurePromptAtEnd();
+      } else if (type === "metadata_lastResult") {
+        appendTerminal(`\n[CACHED LAST RESULT]\n${evt.chunk || '(empty)'}\n`);
+        ensurePromptAtEnd();
+      } else if (type === "metadata_lastError") {
+        appendTerminal(`\n[CACHED LAST ERROR]\n${evt.chunk || '(empty)'}\n`);
+        ensurePromptAtEnd();
+      }
+    }
+
+    function fetchMetadataListSilently() {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({"event-type": "metadata_list"}));
+      }
+    }
+
+    function renderSessionList(termList) {
+      const container = document.getElementById('sessionListContainer');
+      if (!container) return;
+      container.innerHTML = '';
+      if (!termList || termList.length === 0) {
+        container.innerHTML = '<div style="font-size: 0.78rem; color: #888; text-align: center; padding: 6px;">No active sessions.</div>';
+        return;
+      }
+      const activeTermId = document.getElementById('termId').value;
+      termList.forEach(t => {
+        const item = document.createElement('div');
+        const isCurrent = t.terminalid === activeTermId;
+        item.style.cssText = `display: flex; justify-content: space-between; align-items: center; background: ${isCurrent ? '#2b3844' : '#1a1a1a'}; border: 1px solid ${isCurrent ? '#007acc' : '#333'}; border-radius: 4px; padding: 6px 8px; font-size: 0.78rem; cursor: pointer; transition: background 0.15s;`;
+        item.onclick = () => selectAndResumeTerminal(t);
+
+        const left = document.createElement('div');
+        const pathInfo = t.currentPath ? `<div style="color: #aaa; font-size: 0.7rem; font-family: monospace;">${t.currentPath}</div>` : '';
+        left.innerHTML = `<strong style="color: #4ec9b0;">${t.terminalid}</strong> <span style="color: #9cdcfe; font-size: 0.72rem;">[${t.platform || 'PS'}]</span> PID: ${t.pid > 0 ? t.pid : '-'}${pathInfo}`;
+
+        const right = document.createElement('div');
+        const stateLower = (t.state || 'idle').toLowerCase();
+        right.className = `status-pill ${stateLower}`;
+        right.style.fontSize = '0.7rem';
+        right.style.padding = '1px 6px';
+        right.textContent = t.state || 'IDLE';
+
+        item.appendChild(left);
+        item.appendChild(right);
+        container.appendChild(item);
+      });
+    }
+
+    function selectAndResumeTerminal(t) {
+      const termId = t.terminalid;
+      const platform = t.platform || 'PS';
+      document.getElementById('termId').value = termId;
+      document.getElementById('platform').value = platform;
+      currentPath = t.currentPath || "";
+      onPlatformChange();
+      
+      logInspector(`Switched active terminal selection to ${termId} (${platform} | State: ${t.state})`, 'system');
+
+      if (t.state === 'CLOSED') {
+        appendTerminal(`\n[RESTARTING CLOSED TERMINAL ${termId} (${platform})]\n`);
+        sendStart();
+      } else {
+        appendTerminal(`\n[RESUMED SESSION ${termId} (${platform} | State: ${t.state} | PID: ${t.pid})]\n`);
+        fetchLastResult();
+      }
+      fetchMetadataListSilently();
+    }
+
+    function extractPathFromChunk(chunk) {
+      const clean = stripAnsi(chunk);
+      const psMatch = clean.match(/PS\s+([A-Za-z]:\\[^>\r\n]+)>/);
+      const cmdMatch = clean.match(/([A-Za-z]:\\[^>\r\n]+)>/);
+      if (psMatch && psMatch[1]) {
+        currentPath = psMatch[1].trim();
+        updatePromptDisplay();
+      } else if (cmdMatch && cmdMatch[1] && !clean.includes('PS ')) {
+        currentPath = cmdMatch[1].trim();
+        updatePromptDisplay();
+      }
+    }
+
+    /* Terminal Action Handlers */
+    function sendStart() {
+      const termId = document.getElementById('termId').value;
+      const platform = document.getElementById('platform').value;
+      
+      currentPath = "C:\\";
+      updatePromptDisplay();
+
+      clearTerminal();
+      if (platform === 'PS') {
+        appendTerminal("Windows PowerShell\nCopyright (C) Microsoft Corporation. All rights reserved.\n\n");
+      } else {
+        appendTerminal("Microsoft Windows [Version 10.0.26200.9457]\n(c) Microsoft Corporation. All rights reserved.\n\n");
+      }
+      
+      ensurePromptAtEnd();
+
+      sendEvent({
+        "event-type": "terminal_start",
+        "terminalid": termId,
+        "platform": platform
+      });
+    }
+
+    function sendExecute() {
+      const termId = document.getElementById('termId').value;
+      const inputEl = document.getElementById('cmdInput');
+      const cmd = inputEl.value;
+      if (!cmd) return;
+
+      const trimmedLower = cmd.trim().toLowerCase();
+      if (trimmedLower === 'cls' || trimmedLower === 'clear') {
+        clearTerminal();
+        ensurePromptAtEnd();
+        inputEl.value = '';
+        return;
+      }
+
+      const promptStr = getPromptString() + ' ';
+      const body = document.getElementById('terminalBody');
+      if (!body.textContent.endsWith(promptStr)) {
+        ensurePromptAtEnd();
+      }
+
+      appendTerminal(`${cmd}\n`);
+
+      cmdHistory.push(cmd);
+      historyIdx = cmdHistory.length;
+
+      sendEvent({
+        "event-type": "terminal_execute",
+        "terminalid": termId,
+        "command": cmd
+      });
+
+      inputEl.value = '';
+    }
+
+    function sendStop() {
+      const termId = document.getElementById('termId').value;
+      appendTerminal("^C\n");
+      sendEvent({
+        "event-type": "terminal_stop",
+        "terminalid": termId
+      });
+    }
+
+    function sendClose() {
+      const termId = document.getElementById('termId').value;
+      sendEvent({
+        "event-type": "terminal_close",
+        "terminalid": termId
+      });
+    }
+
+    function fetchMetadataList() {
+      sendEvent({
+        "event-type": "metadata_list"
+      });
+    }
+
+    function fetchLastResult() {
+      const termId = document.getElementById('termId').value;
+      sendEvent({
+        "event-type": "metadata_lastResult",
+        "terminalid": termId
+      });
+    }
+
+    function fetchLastError() {
+      const termId = document.getElementById('termId').value;
+      sendEvent({
+        "event-type": "metadata_lastError",
+        "terminalid": termId
+      });
+    }
+
+    function handleKeyDown(e) {
+      if (e.key === 'Enter') {
+        sendExecute();
+      } else if (e.key === 'c' && e.ctrlKey) {
+        sendStop();
+      } else if (e.key === 'ArrowUp') {
+        if (cmdHistory.length > 0 && historyIdx > 0) {
+          historyIdx--;
+          document.getElementById('cmdInput').value = cmdHistory[historyIdx];
+        }
+      } else if (e.key === 'ArrowDown') {
+        if (cmdHistory.length > 0 && historyIdx < cmdHistory.length - 1) {
+          historyIdx++;
+          document.getElementById('cmdInput').value = cmdHistory[historyIdx];
+        } else {
+          historyIdx = cmdHistory.length;
+          document.getElementById('cmdInput').value = '';
+        }
+      }
+    }
+
+    // Intercept multiline paste to test multiline command rejection
+    document.getElementById('cmdInput').addEventListener('paste', function(e) {
+      const pasteData = (e.clipboardData || window.clipboardData).getData('text');
+      if (pasteData && (pasteData.includes('\n') || pasteData.includes('\r'))) {
+        e.preventDefault();
+        const termId = document.getElementById('termId').value;
+        const promptStr = getPromptString() + ' ';
+        const body = document.getElementById('terminalBody');
+        if (!body.textContent.endsWith(promptStr)) {
+          ensurePromptAtEnd();
+        }
+        appendTerminal(`${pasteData.trim()}\n`);
+        sendEvent({
+          "event-type": "terminal_execute",
+          "terminalid": termId,
+          "command": pasteData
+        });
+        this.value = '';
+      }
+    });
+
+    function focusActiveInput() {
+      document.getElementById('cmdInput').focus();
+    }
+
+    /* Preset Test Buttons */
+    function runPresetSingle() {
+      const platform = document.getElementById('platform').value;
+      document.getElementById('cmdInput').value = platform === 'PS' ? "Get-Location" : "dir";
+      sendExecute();
+    }
+    function runPresetCompound() {
+      document.getElementById('cmdInput').value = "cd \\ && dir && echo DONE_COMPOUND";
+      sendExecute();
+    }
+    function runPresetCd() {
+      document.getElementById('cmdInput').value = "cd C:\\";
+      sendExecute();
+    }
+    function runPresetMultiline() {
+      const termId = document.getElementById('termId').value;
+      const promptStr = getPromptString() + ' ';
+      const body = document.getElementById('terminalBody');
+      if (!body.textContent.endsWith(promptStr)) {
+        ensurePromptAtEnd();
+      }
+      appendTerminal("echo Line1\necho Line2\n");
+      sendEvent({
+        "event-type": "terminal_execute",
+        "terminalid": termId,
+        "command": "echo Line1\necho Line2"
+      });
+    }
+    function runPresetLong() {
+      document.getElementById('cmdInput').value = "ping 127.0.0.1 -n 5";
+      sendExecute();
+    }
+
+    updatePromptDisplay();
+    ensurePromptAtEnd();
+  </script>
+</body>
+</html>

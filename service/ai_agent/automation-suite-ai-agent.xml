@@ -1,0 +1,17 @@
+<service>
+  <id>automation-suite-ai-agent</id>
+  <name>Automation Suite V2 - AI Agent</name>
+  <description>Automation Suite V2 AI Agent Inference and Runbooks Catalog Server (Port 9020)</description>
+  <executable>java</executable>
+  <arguments>-Xms256m -Xmx1024m -jar "%BASE%\automation_suite_ai_agent-1.0.0.jar"</arguments>
+  <workingdirectory>%BASE%</workingdirectory>
+  <log mode="roll-by-size">
+    <sizeThreshold>10240</sizeThreshold>
+    <keepFiles>10</keepFiles>
+  </log>
+  <startmode>Automatic</startmode>
+  <delayedAutoStart>true</delayedAutoStart>
+  <onfailure action="restart" delay="10 sec" />
+  <onfailure action="restart" delay="30 sec" />
+  <resetfailure>1 hour</resetfailure>
+</service>

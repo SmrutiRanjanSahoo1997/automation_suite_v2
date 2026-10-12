@@ -1,0 +1,15 @@
+#!/bin/sh
+# Minimal Maven wrapper fallback: uses system mvn, or downloads Maven 3.9 if missing.
+set -e
+if command -v mvn >/dev/null 2>&1; then
+  exec mvn "$@"
+fi
+MVN_VERSION=3.9.9
+INSTALL_DIR="${HOME}/.mvnw-maven"
+if [ ! -x "${INSTALL_DIR}/apache-maven-${MVN_VERSION}/bin/mvn" ]; then
+  echo "System mvn not found; downloading Maven ${MVN_VERSION}..." >&2
+  mkdir -p "${INSTALL_DIR}"
+  curl -fsSL "https://dlcdn.apache.org/maven/maven-3/${MVN_VERSION}/binaries/apache-maven-${MVN_VERSION}-bin.tar.gz" \
+    | tar -xz -C "${INSTALL_DIR}"
+fi
+exec "${INSTALL_DIR}/apache-maven-${MVN_VERSION}/bin/mvn" "$@"

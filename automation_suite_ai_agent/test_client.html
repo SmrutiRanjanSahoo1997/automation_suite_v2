@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SpringBoot AI Agent WebSocket Test Client</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #f8fafc; padding: 20px; }
+    h1 { color: #38bdf8; font-size: 1.5rem; margin-bottom: 15px; }
+    .status-card { background: #1e293b; padding: 15px; border-radius: 8px; border: 1px solid #475569; margin-bottom: 20px; }
+    .badge { padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 0.8rem; }
+    .badge-ok { background: #166534; color: #4ade80; }
+    .badge-notok { background: #991b1b; color: #fca5a5; }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; margin-bottom: 5px; color: #94a3b8; font-size: 0.9rem; }
+    input[type="text"], textarea { width: 100%; padding: 10px; background: #334155; border: 1px solid #475569; border-radius: 6px; color: #fff; font-size: 0.9rem; box-sizing: border-box; }
+    textarea { height: 100px; }
+    .btn { padding: 10px 18px; background: #0284c7; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin-right: 10px; }
+    .btn:hover { background: #0369a1; }
+    .log-box { background: #020617; border: 1px solid #334155; padding: 15px; height: 300px; overflow-y: auto; font-family: monospace; font-size: 0.85rem; color: #38bdf8; border-radius: 6px; }
+    .log-entry { margin-bottom: 6px; border-bottom: 1px solid #1e293b; padding-bottom: 4px; }
+  </style>
+</head>
+<body>
+  <h1>🤖 SpringBoot AI Agent WebSocket Test Client</h1>
+
+  <div class="status-card">
+    <div>WebSocket Server Connection: <span id="ws-status" class="badge badge-notok">DISCONNECTED</span></div>
+    <div style="margin-top: 8px;">Extension Health Status: <span id="health-status" class="badge badge-notok">NOT_OK</span></div>
+    <div style="margin-top: 8px;">Chrome Window State: <strong id="chrome-state">Unknown</strong></div>
+  </div>
+
+  <div class="form-group">
+    <label>Conversation ID (or null)</label>
+    <input type="text" id="conv-id" value="null">
+  </div>
+
+  <div class="form-group">
+    <label>Prompt</label>
+    <textarea id="prompt-input">Hello Copilot, reply with exactly the word APPLE.</textarea>
+  </div>
+
+  <div class="form-group">
+    <label>Files Array (comma separated paths)</label>
+    <input type="text" id="files-input" placeholder="e.g. C:\Ranjan\AutomationSuite_v2\ai_chrome_extension\sample_files_for_testing_file_attach\test_sample.txt">
+  </div>
+
+  <div class="form-group">
+    <button class="btn" onclick="sendExecuteTask()">🚀 Send EXECUTE_TASK to AI Agent</button>
+    <button class="btn" style="background: #475569;" onclick="toggleMinimizable(true)">Minimize Chrome</button>
+    <button class="btn" style="background: #475569;" onclick="toggleMinimizable(false)">Disable Minimization</button>
+  </div>
+
+  <h2>📜 Live Event Log</h2>
+  <div id="log-box" class="log-box"></div>
+
+  <script>
+    let ws = null;
+
+    function connect() {
+      ws = new WebSocket("ws://127.0.0.1:9020/ws/ai_agent");
+
+      ws.onopen = () => {
+        document.getElementById('ws-status').className = 'badge badge-ok';
+        document.getElementById('ws-status').innerText = 'CONNECTED';
+        logMsg("Connected to ws://127.0.0.1:9020/ws/ai_agent");
+      };
+
+      ws.onmessage = (event) => {
+        logMsg("Received message: " + event.data);
+        try {
+          const data = JSON.parse(event.data);
+          if (data.event === "AI_HEALTH") {
+            const hEl = document.getElementById('health-status');
+            hEl.innerText = data.status;
+            hEl.className = data.status === 'OK' ? 'badge badge-ok' : 'badge badge-notok';
+            document.getElementById('chrome-state').innerText = data.chromeState || 'Unknown';
+          }
+        } catch (e) {}
+      };
+
+      ws.onclose = () => {
+        document.getElementById('ws-status').className = 'badge badge-notok';
+        document.getElementById('ws-status').innerText = 'DISCONNECTED';
+        logMsg("Disconnected. Reconnecting in 3s...");
+        setTimeout(connect, 3000);
+      };
+    }
+
+    function sendExecuteTask() {
+      let convId = document.getElementById('conv-id').value.trim();
+      if (convId.toLowerCase() === 'null' || !convId) convId = null;
+      const prompt = document.getElementById('prompt-input').value.trim();
+      const filesStr = document.getElementById('files-input').value.trim();
+      const files_path = filesStr ? filesStr.split(',').map(s => s.trim()).filter(Boolean) : [];
+
+      const payload = {
+        event: "EXECUTE_TASK",
+        conversationId: convId,
+        prompt: prompt,
+        files_path: files_path
+      };
+
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(payload));
+        logMsg("Sent EXECUTE_TASK: " + JSON.stringify(payload));
+      } else {
+        alert("WebSocket is not connected!");
+      }
+    }
+
+    function toggleMinimizable(flag) {
+      const payload = {
+        event: "SET_MINIMIZABLE",
+        minimizable: flag
+      };
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(payload));
+        logMsg("Sent SET_MINIMIZABLE: " + JSON.stringify(payload));
+      }
+    }
+
+    function logMsg(msg) {
+      const logBox = document.getElementById('log-box');
+      const div = document.createElement('div');
+      div.className = 'log-entry';
+      div.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      logBox.appendChild(div);
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    connect();
+  </script>
+</body>
+</html>

@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutomationSuite v2 - Admin User Management</title>
+    <style>
+        :root {
+            --bg-primary: #09090b;
+            --bg-card: #18181b;
+            --bg-accent: #27272a;
+            --border-color: #27272a;
+            --text-primary: #ffffff;
+            --text-muted: #a1a1aa;
+            --accent-yellow: #eab308;
+            --status-success: #22c55e;
+            --status-error: #ef4444;
+            --status-warning: #f97316;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-size: 14px;
+        }
+
+        header {
+            background-color: #121212;
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--accent-yellow);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 32px auto;
+            padding: 0 24px;
+        }
+
+        .card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .btn {
+            background-color: var(--accent-yellow);
+            color: #000000;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-secondary {
+            background-color: var(--bg-accent);
+            color: var(--text-primary);
+        }
+
+        .btn-danger {
+            background-color: var(--status-error);
+            color: #ffffff;
+        }
+
+        .btn-warning {
+            background-color: var(--status-warning);
+            color: #ffffff;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th, td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            color: var(--text-muted);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-success { background: rgba(34, 197, 94, 0.15); color: var(--status-success); border: 1px solid var(--status-success); }
+        .badge-error { background: rgba(239, 68, 68, 0.15); color: var(--status-error); border: 1px solid var(--status-error); }
+        .badge-warning { background: rgba(249, 115, 22, 0.15); color: var(--status-warning); border: 1px solid var(--status-warning); }
+        .badge-secondary { background: var(--bg-accent); color: var(--text-muted); border: 1px solid var(--border-color); }
+
+        .temp-pwd-box {
+            background: #0a0a0a;
+            border: 1px dashed var(--accent-yellow);
+            color: var(--accent-yellow);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .copy-btn {
+            background: var(--accent-yellow);
+            color: #000;
+            border: none;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            border: 1px solid var(--accent-yellow);
+            border-radius: 12px;
+            width: 100%;
+            max-width: 440px;
+            padding: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .form-group input {
+            width: 100%;
+            background: #0a0a0a;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px;
+            color: var(--text-primary);
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        .form-group input:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Admin Security Lock Overlay -->
+    <div class="modal-overlay" id="adminAuthOverlay" style="display: flex; background: rgba(0, 0, 0, 0.95); z-index: 9999;">
+        <div class="modal" style="text-align: center; max-width: 400px; border: 1px solid var(--accent-yellow); box-shadow: 0 0 30px rgba(234, 179, 8, 0.2);">
+            <div style="font-size: 40px; margin-bottom: 12px;">🔒</div>
+            <h2 style="margin: 0 0 8px 0; color: var(--accent-yellow);">Admin Verification</h2>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">
+                Enter system Admin Password to access management.
+            </p>
+            <form onsubmit="submitAdminPassword(event)">
+                <div class="form-group" style="text-align: left;">
+                    <label>Admin Password</label>
+                    <input type="password" id="adminPasswordInput" placeholder="Enter admin password..." required autofocus />
+                </div>
+                <div id="adminAuthError" style="color: var(--status-error); font-size: 12px; margin-bottom: 12px; display: none;"></div>
+                <button type="submit" class="btn" style="width: 100%; justify-content: center; padding: 10px;">Unlock Dashboard</button>
+            </form>
+        </div>
+    </div>
+
+    <header>
+        <div class="header-title">
+            🛡️ AutomationSuite v2 - Admin User Management
+        </div>
+        <div style="display: flex; gap: 8px;">
+            <button class="btn btn-secondary" onclick="fetchUsers()">Refresh List</button>
+            <button class="btn btn-danger" onclick="lockAdminDashboard()">Lock Portal</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Registered System Users</h2>
+                <button class="btn" onclick="openCreateModal()">+ Create New User</button>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>User ID (PK)</th>
+                        <th>User Name</th>
+                        <th>Email Address</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Temp Password</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="userTableBody">
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: var(--text-muted);">Loading users...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Create User Modal -->
+    <div class="modal-overlay" id="createModal">
+        <div class="modal">
+            <h3 style="margin-top:0; color:var(--accent-yellow);">Create New User</h3>
+            <form onsubmit="submitCreateUser(event)">
+                <div class="form-group">
+                    <label>User ID (Primary Key)</label>
+                    <input type="text" id="createUserId" placeholder="e.g. john_doe" required />
+                </div>
+                <div class="form-group">
+                    <label>User Full Name</label>
+                    <input type="text" id="createUserName" placeholder="e.g. John Doe" required />
+                </div>
+                <div class="form-group">
+                    <label>User Email</label>
+                    <input type="email" id="createUserMail" placeholder="e.g. john@company.com" required />
+                </div>
+                <div style="display:flex; justify-content:flex-end; gap:8px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('createModal')">Cancel</button>
+                    <button type="submit" class="btn">Create User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div class="modal-overlay" id="editModal">
+        <div class="modal">
+            <h3 style="margin-top:0; color:var(--accent-yellow);">Update User Details</h3>
+            <form onsubmit="submitUpdateUser(event)">
+                <div class="form-group">
+                    <label>User ID (Primary Key - Read Only)</label>
+                    <input type="text" id="editUserId" disabled />
+                </div>
+                <div class="form-group">
+                    <label>User Full Name</label>
+                    <input type="text" id="editUserName" required />
+                </div>
+                <div class="form-group">
+                    <label>User Email</label>
+                    <input type="email" id="editUserMail" required />
+                </div>
+                <div style="display:flex; justify-content:flex-end; gap:8px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('editModal')">Cancel</button>
+                    <button type="submit" class="btn">Update Details</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Display Generated Temp Password Modal -->
+    <div class="modal-overlay" id="tempPwdModal">
+        <div class="modal">
+            <h3 style="margin-top:0; color:var(--status-success);">Password Generated Successfully</h3>
+            <p style="color:var(--text-muted); font-size:13px;">
+                A new random temporary password has been set with forced change rule (isChangePassword = true).
+                Please copy and send it to the user.
+            </p>
+            <div style="background:#0a0a0a; padding:16px; border:1px solid var(--accent-yellow); border-radius:8px; text-align:center; margin:16px 0;">
+                <span id="generatedPasswordText" style="font-size:20px; font-family:monospace; font-weight:bold; color:var(--accent-yellow);"></span>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:8px;">
+                <button class="btn" onclick="copyGeneratedPassword()">📋 Copy Password</button>
+                <button class="btn btn-secondary" onclick="closeModal('tempPwdModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let adminPassKey = sessionStorage.getItem('adminPasswordKey') || '';
+
+        async function verifyAndLoadDashboard() {
+            if (!adminPassKey) {
+                showAdminAuthOverlay();
+                return;
+            }
+            try {
+                const res = await fetch('/api/v1/admin/users/verify-pass', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: adminPassKey })
+                });
+                if (res.ok) {
+                    hideAdminAuthOverlay();
+                    fetchUsers();
+                } else {
+                    sessionStorage.removeItem('adminPasswordKey');
+                    adminPassKey = '';
+                    showAdminAuthOverlay('Invalid or expired admin password.');
+                }
+            } catch (err) {
+                showAdminAuthOverlay('Error connecting to backend server: ' + err.message);
+            }
+        }
+
+        function showAdminAuthOverlay(errorMsg = '') {
+            const overlay = document.getElementById('adminAuthOverlay');
+            const errDiv = document.getElementById('adminAuthError');
+            overlay.style.display = 'flex';
+            if (errorMsg) {
+                errDiv.innerText = errorMsg;
+                errDiv.style.display = 'block';
+            } else {
+                errDiv.style.display = 'none';
+            }
+        }
+
+        function hideAdminAuthOverlay() {
+            document.getElementById('adminAuthOverlay').style.display = 'none';
+        }
+
+        function lockAdminDashboard() {
+            sessionStorage.removeItem('adminPasswordKey');
+            adminPassKey = '';
+            document.getElementById('adminPasswordInput').value = '';
+            showAdminAuthOverlay('Admin session locked.');
+        }
+
+        async function submitAdminPassword(e) {
+            e.preventDefault();
+            const input = document.getElementById('adminPasswordInput').value.trim();
+            if (!input) return;
+
+            try {
+                const res = await fetch('/api/v1/admin/users/verify-pass', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: input })
+                });
+
+                if (res.ok) {
+                    adminPassKey = input;
+                    sessionStorage.setItem('adminPasswordKey', input);
+                    hideAdminAuthOverlay();
+                    fetchUsers();
+                } else {
+                    let errMsg = 'Invalid Admin Password';
+                    try {
+                        const data = await res.json();
+                        errMsg = data.error || errMsg;
+                    } catch (_) {
+                        errMsg = await res.text();
+                    }
+                    showAdminAuthOverlay(errMsg || 'Invalid Admin Password');
+                }
+            } catch (err) {
+                showAdminAuthOverlay('Connection error: ' + err.message);
+            }
+        }
+
+        async function fetchUsers() {
+            if (!adminPassKey) {
+                showAdminAuthOverlay();
+                return;
+            }
+            try {
+                const res = await fetch('/api/v1/admin/users/list', {
+                    credentials: 'include',
+                    headers: { 'X-Admin-Password': adminPassKey }
+                });
+                if (!res.ok) {
+                    if (res.status === 401 || res.status === 403) {
+                        sessionStorage.removeItem('adminPasswordKey');
+                        adminPassKey = '';
+                        showAdminAuthOverlay('Unauthorized. Invalid Admin Password.');
+                        return;
+                    }
+                    throw new Error(await res.text());
+                }
+                const users = await res.json();
+                renderUsers(users);
+            } catch (err) {
+                alert('Error fetching users: ' + err.message);
+            }
+        }
+
+        function renderUsers(users) {
+            const tbody = document.getElementById('userTableBody');
+            if (!users || users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">No users registered.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = users.map(u => {
+                const statusBadge = u.blocked 
+                    ? '<span class="badge badge-error">BLOCKED</span>' 
+                    : u.passwordChangeRequired 
+                    ? '<span class="badge badge-warning">CHANGE REQ</span>' 
+                    : '<span class="badge badge-success">ACTIVE</span>';
+
+                const tempPwdCol = u.tempPassword 
+                    ? `<div class="temp-pwd-box"><span>${u.tempPassword}</span><button class="copy-btn" onclick="copyText('${u.tempPassword}')">Copy</button></div>`
+                    : '<span style="color:var(--text-muted)">••••••••</span>';
+
+                return `
+                    <tr>
+                        <td style="font-weight:bold; font-family:monospace;">${u.userId}</td>
+                        <td>${u.userName}</td>
+                        <td>${u.userMail}</td>
+                        <td><span class="badge badge-secondary">${u.role}</span></td>
+                        <td>${statusBadge}</td>
+                        <td>${tempPwdCol}</td>
+                        <td>
+                            <button class="btn btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="openEditModal('${u.userId}', '${u.userName}', '${u.userMail}')">Edit</button>
+                            <button class="btn btn-warning" style="padding:4px 8px; font-size:11px;" onclick="resetPassword('${u.userId}')">Reset Pwd</button>
+                            <button class="btn ${u.blocked ? 'btn-secondary' : 'btn-danger'}" style="padding:4px 8px; font-size:11px;" onclick="toggleBlock('${u.userId}', ${!u.blocked})">${u.blocked ? 'Unblock' : 'Block'}</button>
+                            <button class="btn btn-danger" style="padding:4px 8px; font-size:11px;" onclick="deleteUser('${u.userId}')">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function openCreateModal() {
+            document.getElementById('createUserId').value = '';
+            document.getElementById('createUserName').value = '';
+            document.getElementById('createUserMail').value = '';
+            document.getElementById('createModal').style.display = 'flex';
+        }
+
+        function openEditModal(userId, userName, userMail) {
+            document.getElementById('editUserId').value = userId;
+            document.getElementById('editUserName').value = userName;
+            document.getElementById('editUserMail').value = userMail;
+            document.getElementById('editModal').style.display = 'flex';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        async function submitCreateUser(e) {
+            e.preventDefault();
+            const userId = document.getElementById('createUserId').value.trim();
+            const userName = document.getElementById('createUserName').value.trim();
+            const userMail = document.getElementById('createUserMail').value.trim();
+
+            try {
+                const res = await fetch('/api/v1/admin/users/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Admin-Password': adminPassKey
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ userId, userName, userMail })
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || 'Failed to create user');
+                }
+
+                const data = await res.json();
+                closeModal('createModal');
+                showTempPasswordModal(data.tempPassword);
+                fetchUsers();
+            } catch (err) {
+                alert('Create User Error: ' + err.message);
+            }
+        }
+
+        async function submitUpdateUser(e) {
+            e.preventDefault();
+            const userId = document.getElementById('editUserId').value.trim();
+            const userName = document.getElementById('editUserName').value.trim();
+            const userMail = document.getElementById('editUserMail').value.trim();
+
+            try {
+                const res = await fetch('/api/v1/admin/users/update', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Admin-Password': adminPassKey
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ userId, userName, userMail })
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || 'Failed to update user');
+                }
+
+                closeModal('editModal');
+                fetchUsers();
+            } catch (err) {
+                alert('Update User Error: ' + err.message);
+            }
+        }
+
+        async function resetPassword(userId) {
+            if (!confirm(`Reset password for user '${userId}'? A new 8-character password will be generated.`)) return;
+            try {
+                const res = await fetch('/api/v1/admin/users/reset-password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Admin-Password': adminPassKey
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ userId })
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || 'Failed to reset password');
+                }
+
+                const data = await res.json();
+                showTempPasswordModal(data.tempPassword);
+                fetchUsers();
+            } catch (err) {
+                alert('Reset Password Error: ' + err.message);
+            }
+        }
+
+        async function toggleBlock(userId, blocked) {
+            const action = blocked ? 'Block' : 'Unblock';
+            if (!confirm(`${action} user '${userId}'?`)) return;
+
+            try {
+                const res = await fetch('/api/v1/admin/users/block', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Admin-Password': adminPassKey
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ userId, blocked })
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || `Failed to ${action.toLowerCase()} user`);
+                }
+
+                fetchUsers();
+            } catch (err) {
+                alert(`Block User Error: ` + err.message);
+            }
+        }
+
+        async function deleteUser(userId) {
+            if (!confirm(`Permanently delete user '${userId}'? This action cannot be undone.`)) return;
+
+            try {
+                const res = await fetch(`/api/v1/admin/users/delete/${encodeURIComponent(userId)}`, {
+                    method: 'DELETE',
+                    headers: { 'X-Admin-Password': adminPassKey },
+                    credentials: 'include'
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || 'Failed to delete user');
+                }
+
+                fetchUsers();
+            } catch (err) {
+                alert('Delete User Error: ' + err.message);
+            }
+        }
+
+        function showTempPasswordModal(pwd) {
+            document.getElementById('generatedPasswordText').innerText = pwd;
+            document.getElementById('tempPwdModal').style.display = 'flex';
+        }
+
+        function copyGeneratedPassword() {
+            const pwd = document.getElementById('generatedPasswordText').innerText;
+            copyText(pwd);
+        }
+
+        function copyText(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Password copied to clipboard!');
+            }).catch(() => {
+                alert('Failed to copy password.');
+            });
+        }
+
+        // Initialize verification & load dashboard
+        verifyAndLoadDashboard();
+    </script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+<service>
+  <id>automation-suite-agent</id>
+  <name>Automation Suite V2 - Terminal Agent</name>
+  <description>Automation Suite V2 Target Host Terminal Execution Agent with ConPTY Pseudo-Console (Port 9010)</description>
+  <executable>java</executable>
+  <arguments>-Xms256m -Xmx1024m -jar "%BASE%\automation_suite_agent-2.0.0.jar"</arguments>
+  <workingdirectory>%BASE%</workingdirectory>
+  <log mode="roll-by-size">
+    <sizeThreshold>10240</sizeThreshold>
+    <keepFiles>10</keepFiles>
+  </log>
+  <startmode>Automatic</startmode>
+  <delayedAutoStart>true</delayedAutoStart>
+  <onfailure action="restart" delay="10 sec" />
+  <onfailure action="restart" delay="30 sec" />
+  <resetfailure>1 hour</resetfailure>
+</service>
